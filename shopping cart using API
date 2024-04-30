@@ -1,0 +1,147 @@
+$(document).ready(function() {
+    $.ajax({
+        url: 'https://fakestoreapi.com/products',
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            displayProducts(data);
+            products = data; 
+        },
+        error: function(error) {
+            console.log('Error fetching products:', error);
+        }
+    });
+
+    var cart = [];
+    var products = []; 
+    
+// Showing the product in home page
+    function displayProducts(products) {
+        var productList = $('#products');
+        products.map(product => {
+            var productElement = `
+                <div class="product">
+                    <img src="${product.image}" alt="${product.title}">
+                    <h3>${product.title}</h3>
+                    <p>Price: $${product.price}</p>
+                    <button style="cursor:pointer" class="add-to-cart" data-id="${product.id}">Add to Cart</button>
+                </div>
+            `;
+            productList.append($(productElement));
+        });
+    }
+
+// Function to find the product.
+    function findProduct(productId) {
+        var product = products.find(p => p.id === productId);
+        console.log(product)
+        return product;
+    }
+
+    if(cart.length === 0){
+        $("#cart").hide()
+    }
+// Add product to cart
+    $(document).on('click','.add-to-cart', function() {
+        var productId = $(this).data('id');
+        var product = findProduct(productId);
+        if (product) {
+            var existingProduct = cart.find(item => item.id === productId);
+            if (existingProduct) {
+                existingProduct.quantity++;
+            } else {
+                cart.push({...product, quantity:1});}
+            displayCart();
+            
+        }
+    });
+
+   
+// Display the items in the cart, prevent from adding same product multiple time
+
+       function displayCart() {
+        var cartItems = $('#cart-items');
+        cartItems.empty(); // for prevent same item doubling
+        $("#cart").show()
+        var total = 0;
+        cart.map(item => {
+            var cartItemElement = $(`
+<table>
+    <tr class="cart-item">
+        <td><img id = "image" src="${item.image}" alt="${item.title}"></td>
+        <td>${item.title}</td>
+        <td>${item.quantity}</td>
+        <td><button class="increase-quantity" data-id="${item.id}">+</button></td>
+        <td><button class="decrease-quantity" data-id="${item.id}">-</button></td>
+        <td>$${item.price}</td>
+        <td>$${(item.price * item.quantity)}</td>
+        <td><button class="remove-from-cart" data-id="${item.id}">Remove</button></td>
+    </tr>
+</table>
+`);         
+            cartItems.append(cartItemElement);
+            total += item.price * item.quantity;
+            
+        });
+
+        $('#cart-total').text(`Total: $${total}`);
+    }
+
+    // Remove product from cart
+    $(document).on('click', '.remove-from-cart', function() {
+        var productId = $(this).data('id');
+        cart = cart.filter(item => item.id !== productId);
+        
+        displayCart();
+    });
+
+// Increase product quantity
+    $(document).on('click', '.increase-quantity', function() {
+        var productId = $(this).data('id');
+        var product = cart.find(item => item.id === productId);        
+        if (product) {
+            product.quantity++;
+            displayCart();
+        }
+    });
+
+// Decreasing the quantity
+    $(document).on('click', '.decrease-quantity', function() {
+        var productId = $(this).data('id');
+        var product = cart.find(item => item.id === productId);
+        if (product && product.quantity > 1) {
+            product.quantity--;
+            displayCart();
+        }
+    });
+
+// Clear cart
+    $('#clear-cart').click(function() {
+        cart = [];
+        displayCart();
+    });
+
+//Card Payment
+$('#pay-now').click(function() {
+    if (cart.length === 0) {
+        alert('Your cart is empty. Please add items before proceeding to payment.');
+        return;
+    }
+    
+    const cardNumber = $('#card-number').val();
+    if (validateCardNumber(cardNumber)) {
+        alert('Payment successful!');
+        $("#cart-total").hide()
+        $("#clear-cart").hide()
+        $("#payment-form").hide()
+        cart = [];
+        displayCart();
+    } else {
+        alert('Invalid card number!');
+    }
+});
+    function validateCardNumber(cardNumber) {
+        // Simple validation: only allow numbers and length between 12 and 19
+        return /^[\d]{13}$/.test(cardNumber);
+    }
+});
